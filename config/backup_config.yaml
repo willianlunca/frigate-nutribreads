@@ -1,0 +1,48 @@
+# ===== MÍNIMO GARANTIDO PRA SUBIR =====
+ffmpeg:
+  hwaccel_args:
+    - -hwaccel
+    - vaapi
+    - -hwaccel_device
+    - /dev/dri/renderD128
+    - -hwaccel_output_format
+    - yuv420p
+
+mqtt:
+  enabled: true
+  host: 192.168.10.45
+  user: frigate
+  password: "w!11!4n!@#w!11!4n!@#"   # aspas por conter caracteres especiais
+  topic_prefix: frigate
+
+detectors:
+  cpu1:
+    type: cpu
+
+detect:
+  enabled: true
+  fps: 5
+
+cameras:
+  cam_hikvision_1:
+    ffmpeg:
+      inputs:
+        - path: "rtsp://admin:Senha%4007042018@192.168.10.100:554/Streaming/Channels/102"
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1280
+      height: 720
+
+record:
+  enabled: true
+  retain:
+    days: 7
+  alerts:
+    retain:
+      days: 7
+  detections:
+    retain:
+      days: 7
+

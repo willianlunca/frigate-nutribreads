@@ -1,0 +1,114 @@
+# ===== Aceleração por VAAPI (AMD RX 6600) =====
+# Requer no docker-compose:
+#   devices:
+#     - /dev/dri:/dev/dri
+#   environment:
+#     LIBVA_DRIVER_NAME: "radeonsi"
+#   (TZ e demais variáveis como preferir)
+
+ffmpeg:
+  # Flags globais para usar VAAPI (decodificação por hardware)
+  hwaccel_args:
+    - -hwaccel
+    - vaapi
+    - -hwaccel_device
+    - /dev/dri/renderD128
+    - -hwaccel_output_format
+    - yuv420p
+  # RTSP mais estável (bom para mobile/proxy)
+  input_args:
+    - -rtsp_transport
+    - tcp
+    - -rw_timeout
+    - "5000000"
+
+mqtt:
+  enabled: true
+  host: 192.168.10.45
+  user: frigate
+  password: w!11!4n!@#w!11!4n!@#
+  topic_prefix: frigate
+
+# Gravação básica
+record:
+  enabled: true
+  retain:
+    days: 7
+  alerts:
+    retain:
+      days: 7
+  detections:
+    retain:
+      days: 7
+
+detect:
+  fps: 15
+  enabled: true
+
+cameras:
+  cam_hikvision_1:
+    ffmpeg:
+      inputs:
+        # Substream -> DETECT (mais leve para IA / live com menor atraso, se desejar)
+        - path: rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/102
+          roles:
+            - detect
+        # Mainstream -> RECORD (qualidade máxima para gravações e live com alta qualidade)
+        - path: rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/101
+          roles:
+            - record
+    detect:
+      width: 1280
+      height: 720
+
+    motion:
+      threshold: 73
+      contour_area: 10
+      improve_contrast: true
+
+version: 0.16-0
+
+camera_groups:
+  Canal_Teste:
+    order: 1
+    icon: LuWebcam
+    cameras: cam_hikvision_1
+
+semantic_search:
+  enabled: false
+  model_size: small
+
+face_recognition:
+  enabled: true
+  model_size: small
+
+lpr:
+  enabled: true
+
+classification:
+  bird:
+    enabled: false
+
+# === go2rtc (otimizado p/ desktop e mobile) ===
+# Mantém sua senha com @ exatamente como está.
+go2rtc:
+  streams:
+    # Principal (desktop)
+    cam_hikvision_1_main: rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/101
+    # Secundário (leve)
+    cam_hikvision_1_sub:  rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/102
+    # Perfil "mobile" (transcode 720p, sem áudio, bitrate menor) — use quando o celular engasgar
+    cam_hikvision_1_mobile: >
+      cam_hikvision_1_main
+      | ffmpeg:cam_hikvision_1_mobile#audio=0#video=h264#profile=baseline#scale=1280:720#bitrate=2000k
+
+  # WebRTC: ajuda o celular a "fechar" a conexão (NAT)
+  webrtc:
+    ice_servers:
+      - urls:
+          - stun:stun.l.google.com:19302
+          - stun:global.stun.twilio.com:3478
+    # Candidate local do host do Frigate (visto nos seus logs como 192.168.10.46)
+    candidates:
+      - 192.168.10.46:8555
+

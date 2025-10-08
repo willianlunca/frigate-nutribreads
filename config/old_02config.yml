@@ -1,0 +1,88 @@
+# ===== Aceleração por VAAPI (AMD RX 6600) =====
+# Requer no docker-compose:
+#   devices:
+#     - /dev/dri:/dev/dri
+#   environment:
+#     LIBVA_DRIVER_NAME: "radeonsi"
+#   (TZ e demais variáveis como preferir)
+
+ffmpeg:
+  # Flags globais para usar VAAPI (decodificação por hardware)
+  hwaccel_args:
+    - -hwaccel
+    - vaapi
+    - -hwaccel_device
+    - /dev/dri/renderD128
+    - -hwaccel_output_format
+    - yuv420p
+
+mqtt:
+  enabled: true
+  host: 192.168.10.45
+  user: frigate
+  password: w!11!4n!@#w!11!4n!@#
+  topic_prefix: frigate
+
+# Gravação básica
+record:
+  enabled: true
+  retain:
+    days: 7
+  alerts:
+    retain:
+      days: 7
+  detections:
+    retain:
+      days: 7
+
+detect:
+  fps: 5
+  enabled: true
+
+cameras:
+  cam_hikvision_1:
+    ffmpeg:
+      inputs:
+        # Substream -> DETECT (mais leve)
+        - path: 
+            rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/102
+          roles:
+            - detect
+        # Mainstream -> RECORD (qualidade)
+        - path: 
+            rtsp://admin:Senha@07042018@192.168.10.100:554/Streaming/Channels/101
+          roles:
+            - record
+    detect:
+      # Ajuste para a resolução real do substream (ex.: 640x360, 704x480, 1280x720, etc.)
+      width: 1280
+      height: 720
+
+# (Opcional) Ajustes de saída do FFmpeg por perfil:
+# output_args:
+#   record: preset-record-generic
+#   detect: preset-detect-low
+
+    motion:
+      threshold: 73
+      contour_area: 10
+      improve_contrast: true
+version: 0.16-0
+
+camera_groups:
+  Canal_Teste:
+    order: 1
+    icon: LuWebcam
+    cameras: cam_hikvision_1
+
+semantic_search:
+  enabled: false
+  model_size: small
+face_recognition:
+  enabled: true
+  model_size: small
+lpr:
+  enabled: true
+classification:
+  bird:
+    enabled: false

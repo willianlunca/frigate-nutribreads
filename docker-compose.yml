@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    privileged: true
+    shm_size: "512mb"   # ajuste conforme o número de câmeras
+    ports:
+      - "5000:5000"        # UI
+      - "8554:8554"        # RTSP restream
+      - "8555:8555/tcp"    # WebRTC
+      - "8555:8555/udp"
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      TZ: "America/Sao_Paulo"
+      LIBVA_DRIVER_NAME: "radeonsi"
+      FRIGATE_RTSP_PASSWORD: "sua_senha_rtsp"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /volumes_docker/frigate/config:/config
+      - /volumes_docker/frigate/media:/media/frigate
+      - /volumes_docker/frigate/db:/db
+    # Cache temporário em RAM (opcional, melhora desempenho e reduz escrita em disco)
+    # tmpfs:
+    #   - /tmp/cache:rw,size=1000000000
+
